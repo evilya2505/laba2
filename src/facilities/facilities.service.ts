@@ -1,42 +1,49 @@
-import { HttpStatus, Injectable } from "@nestjs/common";
-import { FacilitiesDatasourceService } from "src/datasource/facilitiesdatasource.service";
-import { Facility } from "./facility.entity";
+import { Injectable } from '@nestjs/common';
+import { Facility } from './facility.entity';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 
 @Injectable()
 export class FacilitiesService {
-    constructor(private readonly datasourceService: FacilitiesDatasourceService) {}
+  constructor(
+    @InjectRepository(Facility)
+    private readonly facilityRepository: Repository<Facility>,
+  ) {}
 
-    create(facility: Facility) {
-        this.datasourceService.getFacilities().push(facility);
+  async create(newFacility: Facility): Promise<Facility> {
+    const facility = this.facilityRepository.create();
+    facility.name = newFacility.name;
+    facility.price = newFacility.price;
 
-        return facility;
-    }
+    await this.facilityRepository.save(facility);
+    return facility;
+  }
 
-    findOne(id: number) {
-        return this.datasourceService
-          .getFacilities()
-          .find((facility) => facility.id === id);
-      } 
+  async findOne(id: number): Promise<Facility> {
+    return this.facilityRepository.findOne({
+      where: { id },
+    });
+  }
 
-    findAll(): Facility[] {
-        return this.datasourceService.getFacilities();
-    }   
-    
-    update(id: number, updatedFacility: Facility) {
-        const index = this.datasourceService
-            .getFacilities()
-            .findIndex((facility) => facility.id === id);
-        this.datasourceService.getFacilities()[index] = updatedFacility;
+  async findAll(): Promise<Facility[]> {
+    const guests = await this.facilityRepository.find({
+      relations: {
+        bookings: false,
+      },
+    });
+    return guests;
+  }
 
-        return this.datasourceService.getFacilities()[index];
-    }
-    
-    remove(id: number) {
-        const index = this.datasourceService
-            .getFacilities()
-            .findIndex((facility) => facility.id === id);
-        this.datasourceService.getFacilities().splice(index, 1);
+  async update(id: number, updatedFacility: Facility) {
+    const facility = await this.facilityRepository.findOne({ where: { id } });
+    facility.name = updatedFacility.name;
+    facility.price = updatedFacility.price;
 
-        return HttpStatus.OK;
-    }
+    await this.facilityRepository.save(facility);
+    return facility;
+  }
+
+  remove(id: number) {
+    this.facilityRepository.delete({ id });
+  }
 }
