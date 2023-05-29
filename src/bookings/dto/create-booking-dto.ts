@@ -25,4 +25,6 @@ export class CreateBookingDto {
   facilities: number[];
   @ApiProperty({ example: 1, description: 'Идентификатор типа комнаты' })
   room: number;
+  @ApiProperty({ example: 1, description: 'Идентификатор пользователя' })
+  user: number;
 }

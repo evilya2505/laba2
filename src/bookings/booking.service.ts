@@ -7,6 +7,7 @@ import { CreateBookingDto } from './dto/create-booking-dto';
 import { Room } from 'src/rooms/room.entity';
 import { Facility } from 'src/facilities/facility.entity';
 import { IncompleteBookingDto } from './dto/incomplete-booking-dto ';
+import { User } from 'src/users/users.entity';
 
 @Injectable()
 export class BookingsService {
@@ -19,10 +20,13 @@ export class BookingsService {
     private readonly roomRepository: Repository<Room>,
     @InjectRepository(Facility)
     private readonly facilityRepository: Repository<Facility>,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
   ) {}
 
-  async create(bookingDto: CreateBookingDto): Promise<Booking> {
+  async create(bookingDto: CreateBookingDto, userId: number): Promise<Booking> {
     const booking = this.bookingRepository.create();
+
     booking.bookingnumber = bookingDto.bookingnumber;
     booking.createdate = new Date();
     booking.datefrom = bookingDto.datefrom;
@@ -38,6 +42,16 @@ export class BookingsService {
       },
     });
 
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      select: {
+        id: true,
+        firstname: true,
+        lastname: true,
+        email: true,
+      },
+    });
+
     const facilities = await this.facilityRepository.findBy({
       id: In(bookingDto.facilities),
     });
@@ -45,66 +59,98 @@ export class BookingsService {
     booking.guests = guests;
     booking.room = room;
     booking.facilities = facilities;
+    booking.user = user;
 
-    console.log(booking);
     await this.bookingRepository.save(booking);
 
     return booking;
   }
 
-  async findAll(): Promise<Booking[]> {
-    const booking = await this.bookingRepository.find({
+  async findAll(userId: number): Promise<Booking[]> {
+    const bookings = await this.bookingRepository.find({
       relations: {
         guests: true,
         room: true,
         facilities: true,
+        user: true,
       },
     });
-    return booking;
+
+    let result = [];
+
+    bookings.map((booking) => {
+      if (booking?.user?.id == userId) {
+        result.push(booking);
+        delete booking.user.password;
+      }
+    });
+
+    return result;
   }
 
-  findOne(id: number): Promise<Booking> {
-    return this.bookingRepository.findOne({
+  async findOne(id: number, userId: number): Promise<Booking> {
+    const booking = await this.bookingRepository.findOne({
       where: { id },
-      relations: { guests: true, room: true, facilities: true },
+      relations: { guests: true, room: true, facilities: true, user: true },
     });
+
+    if (booking.user.id == userId) return booking;
   }
 
-  async update(id: number, updatedBooking: CreateBookingDto) {
-    const booking = await this.bookingRepository.findOne({ where: { id } });
+  async update(id: number, updatedBooking: CreateBookingDto, userId: number) {
+    const booking = await this.bookingRepository.findOne({
+      where: { id },
+      relations: { guests: true, room: true, facilities: true, user: true },
+    });
+    if (booking.user.id == userId) {
+      booking.bookingnumber = updatedBooking.bookingnumber;
+      booking.datefrom = updatedBooking.datefrom;
+      booking.dateto = updatedBooking.dateto;
 
-    booking.bookingnumber = updatedBooking.bookingnumber;
-    booking.datefrom = updatedBooking.datefrom;
-    booking.dateto = updatedBooking.dateto;
+      const guests = await this.guestRepository.findBy({
+        id: In(updatedBooking.guests),
+      });
 
-    const guests = await this.guestRepository.findBy({
-      id: In(updatedBooking.guests),
+      const room = await this.roomRepository.findOne({
+        where: {
+          id: updatedBooking.room,
+        },
+      });
+
+      const facilities = await this.facilityRepository.findBy({
+        id: In(updatedBooking.facilities),
+      });
+
+      booking.guests = guests;
+      booking.room = room;
+      booking.facilities = facilities;
+
+      await this.bookingRepository.save(booking);
+      return booking;
+    }
+  }
+
+  async remove(id: number, userId: number): Promise<Boolean> {
+    const booking = await this.bookingRepository.findOne({
+      where: { id },
+      relations: { guests: true, room: true, facilities: true, user: true },
     });
 
-    const room = await this.roomRepository.findOne({
-      where: {
-        id: updatedBooking.room,
+    if (booking.user.id == userId) {
+      this.bookingRepository.delete({ id });
+
+      return true;
+    }
+
+    return false;
+  }
+
+  async findIncomplete(userId: number): Promise<IncompleteBookingDto[]> {
+    const bookings = await this.bookingRepository.find({
+      relations: {
+        user: true,
       },
     });
-
-    const facilities = await this.facilityRepository.findBy({
-      id: In(updatedBooking.facilities),
-    });
-
-    booking.guests = guests;
-    booking.room = room;
-    booking.facilities = facilities;
-
-    await this.bookingRepository.save(booking);
-    return booking;
-  }
-
-  remove(id: number) {
-    this.bookingRepository.delete({ id });
-  }
-
-  async findIncomplete(): Promise<IncompleteBookingDto[]> {
-    const bookings = await this.bookingRepository.find();
 
     const incompleteBookings: IncompleteBookingDto[] = bookings.map(
       (booking) => {
@@ -113,11 +159,21 @@ export class BookingsService {
         incompleteBooking.bookingnumber = booking.bookingnumber;
         incompleteBooking.dateto = booking.dateto;
         incompleteBooking.datefrom = booking.datefrom;
+        incompleteBooking.user = booking.user;
 
         return incompleteBooking;
       },
     );
 
-    return incompleteBookings;
+    let result = [];
+
+    incompleteBookings.map((booking) => {
+      if (booking?.user?.id == userId) {
+        result.push(booking);
+        delete booking.user.password;
+      }
+    });
+
+    return result;
   }
 }

@@ -4,6 +4,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { UpdateUserDto } from './dto/update-user-dto';
+import { UpdatePasswordDto } from './dto/update-password-dto';
 
 @Injectable()
 export class UsersService {
@@ -49,6 +50,12 @@ export class UsersService {
     });
   }
 
+  // async findUserById(id: number) {
+  //   return this.userRepository.findOne({
+  //     where: { id },
+  //   });
+  // }
+
   async update(id: number, updatedUser: UpdateUserDto): Promise<UpdateUserDto> {
     const user = await this.userRepository.findOne({ where: { id } });
 
@@ -59,6 +66,26 @@ export class UsersService {
     await this.userRepository.save(user);
 
     return await this.publicUser(id);
+  }
+
+  async updatePassword(
+    id: number,
+    passwords: UpdatePasswordDto,
+  ): Promise<Boolean> {
+    const user = await this.userRepository.findOne({ where: { id } });
+
+    const validatePassword = await bcrypt.compare(
+      passwords.oldPassword,
+      user.password,
+    );
+
+    if (validatePassword) {
+      user.password = await this.hashPassword(passwords.oldPassword);
+      await this.userRepository.save(user);
+      return true;
+    }
+
+    return false;
   }
 
   remove(id: number): Boolean {

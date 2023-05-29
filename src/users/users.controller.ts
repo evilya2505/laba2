@@ -15,11 +15,21 @@ import { User } from './users.entity';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/guards/jwt-guard';
 import { UpdateUserDto } from './dto/update-user-dto';
+import { UpdatePasswordDto } from './dto/update-password-dto';
 
 @Controller('users')
 @ApiTags('Пользователи')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
+  @ApiOperation({ summary: 'Изменение пароля пользователя' })
+  @UseGuards(JwtAuthGuard)
+  @Put('change-password/:id')
+  updatePassword(
+    @Param('id') id: string,
+    @Body() updatedUser: UpdatePasswordDto,
+  ): Promise<Boolean> {
+    return this.usersService.updatePassword(+id, updatedUser);
+  }
 
   @ApiOperation({ summary: 'Изменение информации о пользователе' })
   @UseGuards(JwtAuthGuard)

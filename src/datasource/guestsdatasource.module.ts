@@ -1,9 +1,9 @@
-import { Module } from '@nestjs/common';
-import { GuestsDatasourceService } from './guestsdatasource.service';
+// import { Module } from '@nestjs/common';
+// import { GuestsDatasourceService } from './guestsdatasource.service';
 
-@Module({
-  providers: [GuestsDatasourceService], 
-  exports: [GuestsDatasourceService], 
-})
+// @Module({
+//   providers: [GuestsDatasourceService],
+//   exports: [GuestsDatasourceService],
+// })
 
-export class GuestsDatasourceModule {}
+// export class GuestsDatasourceModule {}
