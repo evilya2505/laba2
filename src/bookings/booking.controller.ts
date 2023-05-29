@@ -9,9 +9,11 @@ import {
   Put,
   Req,
   UseGuards,
+  UsePipes,
+  ValidationPipe,
 } from '@nestjs/common';
 import { CreateBookingDto } from './dto/create-booking-dto';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/guards/jwt-guard';
 
 @Controller('bookings')
@@ -22,15 +24,19 @@ export class BookingsController {
     summary: 'Получение информации обо всех бронированиях пользователя',
   })
   @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @UsePipes(ValidationPipe)
   @Get()
   findAll(@Req() request: any) {
     const user = request.user;
-    console.log(user);
+
     return this.bookingsService.findAll(user.id);
   }
 
   @ApiOperation({ summary: 'Получение неполной информации о бронировании' })
   @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @UsePipes(ValidationPipe)
   @Get('incomplete')
   findIncomplete(@Req() request: any) {
     const user = request.user;
@@ -40,6 +46,8 @@ export class BookingsController {
 
   @ApiOperation({ summary: 'Получение информации о бронировании по id' })
   @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @UsePipes(ValidationPipe)
   @Get(':id')
   findOne(@Param('id') id: string, @Req() request: any) {
     const user = request.user;
@@ -49,6 +57,8 @@ export class BookingsController {
 
   @ApiOperation({ summary: 'Изменение информации о бронировании' })
   @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @UsePipes(ValidationPipe)
   @Put(':id')
   update(
     @Param('id') id: string,
@@ -62,6 +72,8 @@ export class BookingsController {
 
   @ApiOperation({ summary: 'Создание бронирования' })
   @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @UsePipes(ValidationPipe)
   @Post()
   create(@Body() createBooking: CreateBookingDto, @Req() request: any) {
     const user = request.user;
@@ -71,6 +83,8 @@ export class BookingsController {
 
   @ApiOperation({ summary: 'Удаление бронирования по id' })
   @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @UsePipes(ValidationPipe)
   @Delete(':id')
   remove(@Param('id') id: string, @Req() request: any) {
     const user = request.user;

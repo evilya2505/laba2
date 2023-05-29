@@ -9,17 +9,23 @@ import {
   Put,
   Req,
   UseGuards,
+  UsePipes,
+  ValidationPipe,
 } from '@nestjs/common';
-import { Guest } from './guest.entity';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/guards/jwt-guard';
+import { GuestDto } from './dto/guest-dto';
 
 @Controller('guests')
 @ApiTags('Гости')
 export class GuestsController {
   constructor(private readonly guestsService: GuestsService) {}
-  @ApiOperation({ summary: 'Получение информации обо всех гостях' })
+  @ApiOperation({
+    summary: 'Получение информации обо всех гостях пользователя',
+  })
   @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @UsePipes(ValidationPipe)
   @Get()
   findAll(@Req() request: any) {
     const { id } = request.user;
@@ -29,6 +35,8 @@ export class GuestsController {
 
   @ApiOperation({ summary: 'Получение информации о госте по id' })
   @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @UsePipes(ValidationPipe)
   @Get(':id')
   findOne(@Param('id') id: string, @Req() request: any) {
     const user = request.user;
@@ -38,10 +46,12 @@ export class GuestsController {
 
   @ApiOperation({ summary: 'Изменение информации о госте' })
   @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @UsePipes(ValidationPipe)
   @Put(':id')
   update(
     @Param('id') id: string,
-    @Body() updateGuest: Guest,
+    @Body() updateGuest: GuestDto,
     @Req() request: any,
   ) {
     const user = request.user;
@@ -51,8 +61,10 @@ export class GuestsController {
 
   @ApiOperation({ summary: 'Создание гостя' })
   @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @UsePipes(ValidationPipe)
   @Post()
-  create(@Body() createGuest: Guest, @Req() request: any) {
+  create(@Body() createGuest: GuestDto, @Req() request: any) {
     const user = request.user;
 
     return this.guestsService.create(createGuest, user.id);
@@ -60,6 +72,8 @@ export class GuestsController {
 
   @ApiOperation({ summary: 'Удаление гостя по id' })
   @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @UsePipes(ValidationPipe)
   @Delete(':id')
   remove(@Param('id') id: string, @Req() request: any) {
     const user = request.user;

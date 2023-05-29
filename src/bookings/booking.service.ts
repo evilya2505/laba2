@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable } from '@nestjs/common';
 import { Booking } from './booking.entity';
 import { Guest } from 'src/guests/guest.entity';
 import { In, Repository } from 'typeorm';
@@ -7,7 +7,7 @@ import { CreateBookingDto } from './dto/create-booking-dto';
 import { Room } from 'src/rooms/room.entity';
 import { Facility } from 'src/facilities/facility.entity';
 import { IncompleteBookingDto } from './dto/incomplete-booking-dto ';
-import { User } from 'src/users/users.entity';
+import { UsersService } from 'src/users/users.service';
 
 @Injectable()
 export class BookingsService {
@@ -20,8 +20,7 @@ export class BookingsService {
     private readonly roomRepository: Repository<Room>,
     @InjectRepository(Facility)
     private readonly facilityRepository: Repository<Facility>,
-    @InjectRepository(User)
-    private readonly userRepository: Repository<User>,
+    private readonly usersService: UsersService,
   ) {}
 
   async create(bookingDto: CreateBookingDto, userId: number): Promise<Booking> {
@@ -42,15 +41,7 @@ export class BookingsService {
       },
     });
 
-    const user = await this.userRepository.findOne({
-      where: { id: userId },
-      select: {
-        id: true,
-        firstname: true,
-        lastname: true,
-        email: true,
-      },
-    });
+    const user = await this.usersService.publicUser(userId);
 
     const facilities = await this.facilityRepository.findBy({
       id: In(bookingDto.facilities),
@@ -78,10 +69,10 @@ export class BookingsService {
 
     let result = [];
 
-    bookings.map((booking) => {
+    bookings.map(async (booking) => {
       if (booking?.user?.id == userId) {
         result.push(booking);
-        delete booking.user.password;
+        booking.user = await this.usersService.publicUser(userId);
       }
     });
 
@@ -94,7 +85,12 @@ export class BookingsService {
       relations: { guests: true, room: true, facilities: true, user: true },
     });
 
-    if (booking.user.id == userId) return booking;
+    if (booking.user.id == userId) {
+      booking.user = await this.usersService.publicUser(userId);
+      return booking;
+    } else {
+      throw new ForbiddenException('Нет прав для просмотра бронирования.');
+    }
   }
 
   async update(id: number, updatedBooking: CreateBookingDto, userId: number) {
@@ -121,12 +117,18 @@ export class BookingsService {
         id: In(updatedBooking.facilities),
       });
 
+      const user = await this.usersService.publicUser(userId);
+
+      booking.user = user;
       booking.guests = guests;
       booking.room = room;
       booking.facilities = facilities;
 
       await this.bookingRepository.save(booking);
+
       return booking;
+    } else {
+      throw new ForbiddenException('Нет прав для изменения бронирования.');
     }
   }
 
@@ -140,9 +142,9 @@ export class BookingsService {
       this.bookingRepository.delete({ id });
 
       return true;
+    } else {
+      throw new ForbiddenException('Нет прав для удаления бронирования.');
     }
-
-    return false;
   }
 
   async findIncomplete(userId: number): Promise<IncompleteBookingDto[]> {
@@ -167,10 +169,10 @@ export class BookingsService {
 
     let result = [];
 
-    incompleteBookings.map((booking) => {
+    incompleteBookings.map(async (booking) => {
       if (booking?.user?.id == userId) {
         result.push(booking);
-        delete booking.user.password;
+        booking.user = await this.usersService.publicUser(userId);
       }
     });
 

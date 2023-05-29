@@ -3,16 +3,13 @@ import {
   Body,
   Controller,
   Delete,
-  Get,
   Param,
-  Patch,
-  Post,
   Put,
-  Req,
   UseGuards,
+  UsePipes,
+  ValidationPipe,
 } from '@nestjs/common';
-import { User } from './users.entity';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/guards/jwt-guard';
 import { UpdateUserDto } from './dto/update-user-dto';
 import { UpdatePasswordDto } from './dto/update-password-dto';
@@ -23,6 +20,8 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
   @ApiOperation({ summary: 'Изменение пароля пользователя' })
   @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @UsePipes(ValidationPipe)
   @Put('change-password/:id')
   updatePassword(
     @Param('id') id: string,
@@ -33,6 +32,8 @@ export class UsersController {
 
   @ApiOperation({ summary: 'Изменение информации о пользователе' })
   @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @UsePipes(ValidationPipe)
   @Put(':id')
   update(
     @Param('id') id: string,
@@ -43,6 +44,8 @@ export class UsersController {
 
   @ApiOperation({ summary: 'Удаление пользователя по id' })
   @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @UsePipes(ValidationPipe)
   @Delete(':id')
   remove(@Param('id') id: string): Boolean {
     return this.usersService.remove(+id);

@@ -1,19 +1,19 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable } from '@nestjs/common';
 import { Guest } from './guest.entity';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
-import { User } from 'src/users/users.entity';
+import { UsersService } from 'src/users/users.service';
+import { GuestDto } from './dto/guest-dto';
 
 @Injectable()
 export class GuestsService {
   constructor(
     @InjectRepository(Guest)
     private readonly guestRepository: Repository<Guest>,
-    @InjectRepository(User)
-    private readonly userRepository: Repository<User>,
+    private readonly usersService: UsersService,
   ) {}
 
-  async create(newGuest: Guest, userId: number): Promise<Guest> {
+  async create(newGuest: GuestDto, userId: number): Promise<Guest> {
     const guest = this.guestRepository.create();
 
     guest.firstname = newGuest.firstname;
@@ -21,15 +21,7 @@ export class GuestsService {
     guest.phonenumber = newGuest.phonenumber;
     guest.emailaddress = newGuest.emailaddress;
 
-    const user = await this.userRepository.findOne({
-      where: { id: userId },
-      select: {
-        id: true,
-        firstname: true,
-        lastname: true,
-        email: true,
-      },
-    });
+    const user = await this.usersService.publicUser(userId);
 
     guest.user = user;
 
@@ -38,16 +30,22 @@ export class GuestsService {
     return guest;
   }
 
-  async findOne(id: number, userId: number): Promise<Guest> {
+  async findOne(id: number, userId: number): Promise<GuestDto> {
     const guest = await this.guestRepository.findOne({
       where: { id },
       relations: { user: true },
     });
 
-    if (guest?.user?.id == userId) return guest;
+    if (guest?.user?.id == userId) {
+      guest.user = await this.usersService.publicUser(userId);
+
+      return guest;
+    } else {
+      throw new ForbiddenException('Нет прав для просмотра гостя.');
+    }
   }
 
-  async findAll(userId: number): Promise<Guest[]> {
+  async findAll(userId: number): Promise<GuestDto[]> {
     const guests = await this.guestRepository.find({
       relations: {
         bookings: false,
@@ -57,8 +55,9 @@ export class GuestsService {
 
     let result = [];
 
-    guests.map((guest) => {
+    guests.map(async (guest) => {
       if (guest?.user?.id == userId) {
+        guest.user = await this.usersService.publicUser(userId);
         result.push(guest);
       }
     });
@@ -66,7 +65,7 @@ export class GuestsService {
     return result;
   }
 
-  async update(id: number, updatedAuthor: Guest, userId: number) {
+  async update(id: number, updatedAuthor: GuestDto, userId: number) {
     const guest = await this.guestRepository.findOne({
       where: { id },
       relations: { user: true },
@@ -76,10 +75,15 @@ export class GuestsService {
       guest.lastname = updatedAuthor.lastname;
       guest.phonenumber = updatedAuthor.phonenumber;
       guest.emailaddress = updatedAuthor.emailaddress;
+      guest.user = await this.usersService.publicUser(userId);
 
       await this.guestRepository.save(guest);
 
       return guest;
+    } else {
+      throw new ForbiddenException(
+        'Нет прав для изменения информации о госте.',
+      );
     }
   }
 
@@ -92,8 +96,8 @@ export class GuestsService {
       this.guestRepository.delete({ id });
 
       return true;
+    } else {
+      throw new ForbiddenException('Нет прав для удаления гостя.');
     }
-
-    return false;
   }
 }

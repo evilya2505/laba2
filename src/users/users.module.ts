@@ -9,7 +9,7 @@ import { JwtStrategy } from 'src/strategy';
 @Module({
   controllers: [UsersController],
   providers: [UsersService, JwtStrategy],
-  imports: [TypeOrmModule.forFeature([Booking, User])], // for feature какую либо логику будем использовать только в рамках текущего модуля
+  imports: [TypeOrmModule.forFeature([Booking, User])],
   exports: [UsersService],
 })
 export class UsersModule {}

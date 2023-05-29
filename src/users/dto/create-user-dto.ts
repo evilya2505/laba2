@@ -7,7 +7,7 @@ import {
   MinLength,
 } from 'class-validator';
 
-export class UpdateUserDto {
+export class CreateUserDto {
   @ApiProperty({ example: 'Федорова', description: 'Фамилия пользователя' })
   @IsString()
   @MinLength(2)
@@ -28,4 +28,10 @@ export class UpdateUserDto {
   @MinLength(3)
   @IsNotEmpty()
   email: string;
+
+  @IsString()
+  @MinLength(3)
+  @IsNotEmpty()
+  @ApiProperty({ example: '123', description: 'Пароль' })
+  password: string;
 }

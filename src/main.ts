@@ -11,6 +11,7 @@ async function bootstrap() {
   const config = new DocumentBuilder()
     .setTitle('Education API')
     .setVersion('1.0')
+    .addBearerAuth()
     .build(); // Конфигурируем сборщик документации
   const document = SwaggerModule.createDocument(app, config); // создаем апи документацию
   SwaggerModule.setup('api_docs', app, document); //включаем документацию Swagger по пути localhost:3001/api_docs

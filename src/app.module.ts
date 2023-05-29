@@ -11,7 +11,6 @@ import ConfigEnv from 'configurations';
 
 @Module({
   imports: [
-    // первый параметр, что используется глобально, второ параметр - объект конфигурации
     ConfigModule.forRoot({ isGlobal: true, load: [ConfigEnv] }),
     AuthModule,
     RoomsModule,

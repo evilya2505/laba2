@@ -1,4 +1,4 @@
-import { ClassProvider, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { BookingsController } from './booking.controller';
 import { BookingsService } from './booking.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -13,6 +13,9 @@ import { UsersModule } from 'src/users/users.module';
 @Module({
   controllers: [BookingsController],
   providers: [BookingsService, JwtStrategy],
-  imports: [TypeOrmModule.forFeature([Booking, Guest, Room, Facility, User])],
+  imports: [
+    TypeOrmModule.forFeature([Booking, Guest, Room, Facility, User]),
+    UsersModule,
+  ],
 })
 export class BookingsModule {}

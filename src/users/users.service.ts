@@ -5,6 +5,7 @@ import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { UpdateUserDto } from './dto/update-user-dto';
 import { UpdatePasswordDto } from './dto/update-password-dto';
+import { CreateUserDto } from './dto/create-user-dto';
 
 @Injectable()
 export class UsersService {
@@ -12,9 +13,7 @@ export class UsersService {
     @InjectRepository(User) private readonly userRepository: Repository<User>,
   ) {}
 
-  // функция для хэширования пароля
   async hashPassword(password: string) {
-    // второй параметр - salt, модификатор, который отвечает за то, чтобы хэш был всегда разный
     return bcrypt.hash(password, 10);
   }
 
@@ -22,8 +21,11 @@ export class UsersService {
     return this.userRepository.findOne({ where: { email } });
   }
 
-  async create(newUser: User): Promise<User> {
-    // хэшируем пароль
+  async findUserById(id: number) {
+    return this.userRepository.findOne({ where: { id } });
+  }
+
+  async create(newUser: CreateUserDto): Promise<User> {
     newUser.password = await this.hashPassword(newUser.password);
 
     const user = this.userRepository.create();
@@ -49,12 +51,6 @@ export class UsersService {
       },
     });
   }
-
-  // async findUserById(id: number) {
-  //   return this.userRepository.findOne({
-  //     where: { id },
-  //   });
-  // }
 
   async update(id: number, updatedUser: UpdateUserDto): Promise<UpdateUserDto> {
     const user = await this.userRepository.findOne({ where: { id } });
