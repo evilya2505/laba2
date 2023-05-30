@@ -69,12 +69,12 @@ export class BookingsService {
 
     let result = [];
 
-    bookings.map(async (booking) => {
-      if (booking?.user?.id == userId) {
-        result.push(booking);
-        booking.user = await this.usersService.publicUser(userId);
+    for (let i = 0; i < bookings.length; i++) {
+      if (bookings[i]?.user?.id == userId) {
+        bookings[i].user = await this.usersService.publicUser(userId);
+        result.push(bookings[i]);
       }
-    });
+    }
 
     return result;
   }
@@ -169,12 +169,12 @@ export class BookingsService {
 
     let result = [];
 
-    incompleteBookings.map(async (booking) => {
-      if (booking?.user?.id == userId) {
-        result.push(booking);
-        booking.user = await this.usersService.publicUser(userId);
+    for (let i = 0; i < incompleteBookings.length; i++) {
+      if (incompleteBookings[i]?.user?.id == userId) {
+        incompleteBookings[i].user = await this.usersService.publicUser(userId);
+        result.push(incompleteBookings[i]);
       }
-    });
+    }
 
     return result;
   }

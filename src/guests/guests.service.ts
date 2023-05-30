@@ -46,6 +46,7 @@ export class GuestsService {
   }
 
   async findAll(userId: number): Promise<GuestDto[]> {
+    console.log('here');
     const guests = await this.guestRepository.find({
       relations: {
         bookings: false,
@@ -55,12 +56,12 @@ export class GuestsService {
 
     let result = [];
 
-    guests.map(async (guest) => {
-      if (guest?.user?.id == userId) {
-        guest.user = await this.usersService.publicUser(userId);
-        result.push(guest);
+    for (let i = 0; i < guests.length; i++) {
+      if (guests[i]?.user?.id == userId) {
+        guests[i].user = await this.usersService.publicUser(userId);
+        result.push(guests[i]);
       }
-    });
+    }
 
     return result;
   }
