@@ -1,42 +1,104 @@
-import { HttpStatus, Injectable } from "@nestjs/common";
-import { GuestsDatasourceService } from "src/datasource/guestsdatasource.service";
-import { Guest } from "./guest.entity";
+import { ForbiddenException, Injectable } from '@nestjs/common';
+import { Guest } from './guest.entity';
+import { Repository } from 'typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
+import { UsersService } from 'src/users/users.service';
+import { GuestDto } from './dto/guest-dto';
 
 @Injectable()
 export class GuestsService {
-    constructor(private readonly datasourceService: GuestsDatasourceService) {}
+  constructor(
+    @InjectRepository(Guest)
+    private readonly guestRepository: Repository<Guest>,
+    private readonly usersService: UsersService,
+  ) {}
 
-    create(guest: Guest) {
-        this.datasourceService.getGuests().push(guest);
+  async create(newGuest: GuestDto, userId: number): Promise<Guest> {
+    const guest = this.guestRepository.create();
 
-        return guest;
+    guest.firstname = newGuest.firstname;
+    guest.lastname = newGuest.lastname;
+    guest.phonenumber = newGuest.phonenumber;
+    guest.emailaddress = newGuest.emailaddress;
+
+    const user = await this.usersService.publicUser(userId);
+
+    guest.user = user;
+
+    await this.guestRepository.save(guest);
+
+    return guest;
+  }
+
+  async findOne(id: number, userId: number): Promise<GuestDto> {
+    const guest = await this.guestRepository.findOne({
+      where: { id },
+      relations: { user: true },
+    });
+
+    if (guest?.user?.id == userId) {
+      guest.user = await this.usersService.publicUser(userId);
+
+      return guest;
+    } else {
+      throw new ForbiddenException('Нет прав для просмотра гостя.');
+    }
+  }
+
+  async findAll(userId: number): Promise<GuestDto[]> {
+    console.log('here');
+    const guests = await this.guestRepository.find({
+      relations: {
+        bookings: false,
+        user: true,
+      },
+    });
+
+    let result = [];
+
+    for (let i = 0; i < guests.length; i++) {
+      if (guests[i]?.user?.id == userId) {
+        guests[i].user = await this.usersService.publicUser(userId);
+        result.push(guests[i]);
+      }
     }
 
-    findOne(id: number) {
-        return this.datasourceService
-          .getGuests()
-          .find((guest) => guest.id === id);
-      } 
+    return result;
+  }
 
-    findAll(): Guest[] {
-        return this.datasourceService.getGuests();
-    }   
-    
-    update(id: number, updatedGuest: Guest) {
-        const index = this.datasourceService
-            .getGuests()
-            .findIndex((guest) => guest.id === id);
-        this.datasourceService.getGuests()[index] = updatedGuest;
+  async update(id: number, updatedAuthor: GuestDto, userId: number) {
+    const guest = await this.guestRepository.findOne({
+      where: { id },
+      relations: { user: true },
+    });
+    if (guest?.user?.id == userId) {
+      guest.firstname = updatedAuthor.firstname;
+      guest.lastname = updatedAuthor.lastname;
+      guest.phonenumber = updatedAuthor.phonenumber;
+      guest.emailaddress = updatedAuthor.emailaddress;
+      guest.user = await this.usersService.publicUser(userId);
 
-        return this.datasourceService.getGuests()[index];
+      await this.guestRepository.save(guest);
+
+      return guest;
+    } else {
+      throw new ForbiddenException(
+        'Нет прав для изменения информации о госте.',
+      );
     }
-    
-    remove(id: number) {
-        const index = this.datasourceService
-            .getGuests()
-            .findIndex((guest) => guest.id === id);
-        this.datasourceService.getGuests().splice(index, 1);
+  }
 
-        return HttpStatus.OK;
+  async remove(id: number, userId: number): Promise<Boolean> {
+    const guest = await this.guestRepository.findOne({
+      where: { id },
+      relations: { user: true },
+    });
+    if (guest?.user?.id == userId) {
+      this.guestRepository.delete({ id });
+
+      return true;
+    } else {
+      throw new ForbiddenException('Нет прав для удаления гостя.');
     }
+  }
 }

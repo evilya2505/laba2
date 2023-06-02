@@ -1,42 +1,53 @@
-import { HttpStatus, Injectable } from "@nestjs/common";
-import { RoomsDatasourceService } from "src/datasource/roomsdatasource.service";
-import { Room } from "./room.entity";
+import { Injectable } from '@nestjs/common';
+import { Room } from './room.entity';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { RoomDto } from './dto/room-dto';
 
 @Injectable()
 export class RoomsService {
-    constructor(private readonly datasourceService: RoomsDatasourceService) {}
+  constructor(
+    @InjectRepository(Room)
+    private readonly roomRepository: Repository<Room>,
+  ) {}
 
-    create(room: Room) {
-        this.datasourceService.getRooms().push(room);
+  async create(newGuest: RoomDto): Promise<RoomDto> {
+    const room = this.roomRepository.create();
+    room.name = newGuest.name;
+    room.maxpeople = newGuest.maxpeople;
+    room.description = newGuest.description;
+    room.price = newGuest.price;
 
-        return room;
-    }
+    await this.roomRepository.save(room);
+    return room;
+  }
 
-    findOne(id: number) {
-        return this.datasourceService
-          .getRooms()
-          .find((room) => room.id === id);
-      } 
+  async findOne(id: number): Promise<RoomDto> {
+    return this.roomRepository.findOne({
+      where: { id },
+    });
+  }
 
-    findAll(): Room[] {
-        return this.datasourceService.getRooms();
-    }   
-    
-    update(id: number, updatedRoom: Room) {
-        const index = this.datasourceService
-            .getRooms()
-            .findIndex((room) => room.id === id);
-        this.datasourceService.getRooms()[index] = updatedRoom;
+  async findAll(): Promise<RoomDto[]> {
+    const guests = await this.roomRepository.find({
+      relations: {
+        bookings: false,
+      },
+    });
+    return guests;
+  }
 
-        return this.datasourceService.getRooms()[index];
-    }
-    
-    remove(id: number) {
-        const index = this.datasourceService
-            .getRooms()
-            .findIndex((room) => room.id === id);
-        this.datasourceService.getRooms().splice(index, 1);
+  async update(id: number, updatedRoom: RoomDto) {
+    const room = await this.roomRepository.findOne({ where: { id } });
+    room.name = updatedRoom.name;
+    room.maxpeople = updatedRoom.maxpeople;
+    room.description = updatedRoom.description;
+    room.price = updatedRoom.price;
+    await this.roomRepository.save(room);
+    return room;
+  }
 
-        return HttpStatus.OK;
-    }
+  remove(id: number) {
+    this.roomRepository.delete({ id });
+  }
 }

@@ -1,30 +1,39 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Booking } from 'src/bookings/booking.entity';
+import {
+  IsNotEmpty,
+  IsNumber,
+  IsString,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
 
-import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
-
-@Entity('rooms')
-export class Room {
-  @ApiProperty({ example: '1', description: 'Уникальный идентификатор' })
-  @PrimaryGeneratedColumn()
-  id: number;
+export class RoomDto {
   @ApiProperty({ example: 'Одноместный номер', description: 'Название номера' })
-  @Column({})
+  @IsString()
+  @MinLength(2)
+  @IsNotEmpty()
   name: string;
+
   @ApiProperty({ example: '1', description: 'Максимальное количество людей' })
-  @Column()
+  @IsNumber()
+  @MinLength(1)
+  @MaxLength(2)
+  @IsNotEmpty()
   maxpeople: number;
+
   @ApiProperty({ example: '5000', description: 'Цена' })
-  @Column()
+  @IsNumber()
+  @MinLength(3)
+  @IsNotEmpty()
   price: number;
+
+  @IsString()
+  @MinLength(3)
+  @IsNotEmpty()
   @ApiProperty({
     example:
       'В гостинице «Паллада» при одноместном размещении (площадь от 30 до 45 кв. метров) вы найдете широкие кровати.',
     description: 'Описание',
   })
-  @Column()
   description: string;
-
-  @OneToMany(() => Booking, (booking) => booking.room)
-  bookings: Booking[];
 }
